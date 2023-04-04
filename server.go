@@ -48,9 +48,13 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	redirectMap := map[string]string{}
 	err := yaml.Unmarshal(yml, &mp)
 
+	if err != nil {
+		return nil, err
+	}
+
 	for _, v := range mp {
 		redirectMap[v.Path] = v.URL
 	}
 
-	return MapHandler(redirectMap, fallback), err
+	return MapHandler(redirectMap, fallback), nil
 }
