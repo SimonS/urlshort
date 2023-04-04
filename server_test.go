@@ -23,7 +23,7 @@ func StubMux() *http.ServeMux {
 	return mux
 }
 
-func TestServerWorks(t *testing.T) {
+func TestRedirectHandlers(t *testing.T) {
 	stub := StubMux()
 
 	t.Run("an arbitrary route returns something", func(t *testing.T) {
@@ -79,6 +79,36 @@ func TestServerWorks(t *testing.T) {
 		mappedServer(res, req)
 
 		assertStatusCode(t, res, http.StatusNotFound)
+	})
+
+	t.Run("YAMLHandler takes YAML and redirects appropriately", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/urlshort", nil)
+		res := httptest.NewRecorder()
+
+		yaml := `
+- path: /urlshort
+  url: https://github.com/gophercises/urlshort
+- path: /urlshort-final
+  url: https://github.com/gophercises/urlshort/tree/solution
+`
+		yamlHandler, _ := urlshort.YAMLHandler([]byte(yaml), stub)
+		yamlHandler(res, req)
+
+		assertStatusCode(t, res, http.StatusPermanentRedirect)
+
+		assertLocation(t, res, "https://github.com/gophercises/urlshort")
+	})
+
+	t.Run("YAMLHandler errors out on dodgy YAML", func(t *testing.T) {
+		yaml := `
+  - patch: /urlsho
+   - patch: /urlsho
+`
+		_, err := urlshort.YAMLHandler([]byte(yaml), stub)
+
+		if err == nil {
+			t.Errorf("expected an error, didn't get one")
+		}
 	})
 }
 
